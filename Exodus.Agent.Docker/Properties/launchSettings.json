@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Exodus.Agent.Docker": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:62023;http://localhost:62024"
+    }
+  }
+}
