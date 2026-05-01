@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Exodus.Agent.IIS": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:62025;http://localhost:62026"
+    }
+  }
+}
