@@ -1,9 +1,0 @@
-version: '3.8'
-
-services:
-  exodus-agent:
-    image: $IMAGE_NAME
-    deploy:
-      labels:
-        traefik.http.routers.exodus-agent.rule: Host(`exodus-agent.apymsa-prdsvr.apymsa.com.mx`)
-        traefik.http.routers.exodus-agent.entrypoints: http
