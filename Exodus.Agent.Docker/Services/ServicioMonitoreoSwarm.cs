@@ -31,8 +31,9 @@ public class ServicioMonitoreoSwarm : BaseServicioMonitoreo
     public ServicioMonitoreoSwarm(IElasticClient pElastic, IConfiguration pConfig,
         IHttpClientFactory pHttpFactory, ILogger<ServicioMonitoreoSwarm> pLogger,
         EstadoEjecucionAgente pEstado, FiltrosComunes pFiltros,
-        DockerClient pDocker, SubMuestreadorDocker pSubMuestreador)
-        : base(pElastic, pConfig, pLogger, pEstado)
+        DockerClient pDocker, SubMuestreadorDocker pSubMuestreador,
+        ProveedorConfiguracionDinamica pConfiguracion)
+        : base(pElastic, pConfig, pLogger, pEstado, pConfiguracion)
     {
         HttpClientInterno = pHttpFactory.CreateClient("MiClienteApi");
         HttpClientExterno = pHttpFactory.CreateClient("ClienteExterno");
@@ -59,10 +60,7 @@ public class ServicioMonitoreoSwarm : BaseServicioMonitoreo
 
         // Servicios cuyo canal externo se debe omitir aunque tengan URLs HTTPS válidas.
         // El canal interno se ejecuta normalmente, incluso para esas URLs HTTPS.
-        var ServiciosSoloInterno = new HashSet<string>(
-            Config.GetSection("Agent:ServiciosSoloInterno").Get<string[]>()
-                ?? Array.Empty<string>(),
-            StringComparer.OrdinalIgnoreCase);
+        var ServiciosSoloInterno = Configuracion.Obtener().SetServiciosSoloInterno;
 
         var Contextos = new List<ContextoServicio>();
 

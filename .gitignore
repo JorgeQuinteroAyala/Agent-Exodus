@@ -1,0 +1,15 @@
+## Build outputs
+bin/
+obj/
+
+## User-specific files
+*.user
+*.suo
+.vs/
+
+## Publish profiles
+**/Properties/PublishProfiles/*.pubxml
+
+## NuGet
+*.nupkg
+packages/

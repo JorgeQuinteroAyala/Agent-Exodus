@@ -12,17 +12,20 @@ public abstract class BaseServicioMonitoreo : BackgroundService, IServicioMonito
     protected readonly IConfiguration Config;
     protected readonly ILogger Logger;
     protected readonly EstadoEjecucionAgente Estado;
+    protected readonly ProveedorConfiguracionDinamica Configuracion;
     private readonly SemaphoreSlim Candado = new(1, 1);
 
     public abstract string NombrePlataforma { get; }
 
     protected BaseServicioMonitoreo(IElasticClient pElastic, IConfiguration pConfig,
-        ILogger pLogger, EstadoEjecucionAgente pEstado)
+        ILogger pLogger, EstadoEjecucionAgente pEstado,
+        ProveedorConfiguracionDinamica pConfiguracion)
     {
         Elastic = pElastic;
         Config = pConfig;
         Logger = pLogger;
         Estado = pEstado;
+        Configuracion = pConfiguracion;
     }
 
     protected override async Task ExecuteAsync(CancellationToken pCancelacionToken)
@@ -44,6 +47,7 @@ public abstract class BaseServicioMonitoreo : BackgroundService, IServicioMonito
         try
         {
             Logger.LogInformation("Iniciando ciclo de monitoreo {Plataforma}...", NombrePlataforma);
+            await Configuracion.RefrescarAsync(pCancelacionToken);
             await ProcesarCicloAsync(pCancelacionToken);
             await EnviarLatidoAsync(pCancelacionToken);
             Estado.MarcarEjecucionExitosa();
