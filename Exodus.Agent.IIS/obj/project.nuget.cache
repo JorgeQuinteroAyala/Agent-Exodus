@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "dgSpecHash": "82t2HMVprOs=",
+  "success": true,
+  "projectFilePath": "/home/runner/work/Agent-Exodus/Agent-Exodus/Exodus.Agent.IIS/Exodus.Agent.IIS.csproj",
+  "expectedPackageFiles": [
+    "/home/runner/.nuget/packages/elasticsearch.net/7.17.5/elasticsearch.net.7.17.5.nupkg.sha512",
+    "/home/runner/.nuget/packages/microsoft.extensions.hosting.windowsservices/10.0.0/microsoft.extensions.hosting.windowsservices.10.0.0.nupkg.sha512",
+    "/home/runner/.nuget/packages/microsoft.netcore.platforms/1.0.1/microsoft.netcore.platforms.1.0.1.nupkg.sha512",
+    "/home/runner/.nuget/packages/microsoft.web.administration/11.1.0/microsoft.web.administration.11.1.0.nupkg.sha512",
+    "/home/runner/.nuget/packages/nest/7.17.5/nest.7.17.5.nupkg.sha512",
+    "/home/runner/.nuget/packages/netstandard.library/1.6.0/netstandard.library.1.6.0.nupkg.sha512",
+    "/home/runner/.nuget/packages/system.reflection.typeextensions/4.4.0/system.reflection.typeextensions.4.4.0.nupkg.sha512",
+    "/home/runner/.nuget/packages/system.serviceprocess.servicecontroller/10.0.0/system.serviceprocess.servicecontroller.10.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
