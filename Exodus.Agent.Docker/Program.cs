@@ -76,8 +76,10 @@ var App = Builder.Build();
 using (var Scope = App.Services.CreateScope())
 {
     var Inicializador = Scope.ServiceProvider.GetRequiredService<InicializadorIndicesElastic>();
-
     await Inicializador.AsegurarIndicesAsync(CancellationToken.None);
+
+    var Proveedor = Scope.ServiceProvider.GetRequiredService<ProveedorConfiguracionDinamica>();
+    await Proveedor.BootstrapAsync(CancellationToken.None);
 }
 
 App.MapControllers();

@@ -26,6 +26,7 @@ public class InicializadorIndicesElastic
 
         await CrearIndiceServicios(IndiceServicios, pCancelacionToken);
         await CrearIndiceHeartBeats(IndiceLatidos, pCancelacionToken);
+        await CrearIndiceConfiguracion(pCancelacionToken);
     }
 
     private async Task CrearIndiceServicios(string pNombreIndice, CancellationToken pCancelacionToken)
@@ -119,8 +120,7 @@ public class InicializadorIndicesElastic
             ), pCancelacionToken);
     }
 
-    private async Task CrearIndiceHeartBeats(string pNombreIndice, CancellationToken pCancelacionToken)
-    {
+    private async Task CrearIndiceHeartBeats(string pNombreIndice, CancellationToken pCancelacionToken)    {
         var Existe = await Elastic.Indices.ExistsAsync(pNombreIndice, d => d, pCancelacionToken);
 
         if (Existe.Exists)
@@ -142,6 +142,35 @@ public class InicializadorIndicesElastic
                     .Keyword(k => k.Name(h => h.NombreHost))
                     .Keyword(k => k.Name(h => h.SistemaOperativo))
                     .Date(d => d.Name(h => h.UltimoLatido))
+                )
+            ), pCancelacionToken);
+    }
+
+    private async Task CrearIndiceConfiguracion(CancellationToken pCancelacionToken)
+    {
+        const string NombreIndice = "exodus-config";
+
+        var Existe = await Elastic.Indices.ExistsAsync(NombreIndice, d => d, pCancelacionToken);
+
+        if (Existe.Exists)
+        {
+            Logger.LogInformation("El índice {Indice} ya existe.", NombreIndice);
+            return;
+        }
+
+        Logger.LogInformation("Creando índice {Indice}...", NombreIndice);
+
+        await Elastic.Indices.CreateAsync(NombreIndice, c => c
+            .Settings(s => s.NumberOfShards(1).NumberOfReplicas(1))
+            .Map<ConfiguracionAgenteDoc>(m => m
+                .AutoMap()
+                .Properties(ps => ps
+                    .Number(n => n.Name(d => d.Version).Type(NumberType.Long))
+                    .Date(d => d.Name(x => x.ActualizadoUtc))
+                    .Keyword(k => k.Name(x => x.ActualizadoPor))
+                    .Keyword(k => k.Name(x => x.ServiciosIgnorados))
+                    .Keyword(k => k.Name(x => x.ServiciosSoloInterno))
+                    .Keyword(k => k.Name(x => x.DominiosBloqueados))
                 )
             ), pCancelacionToken);
     }

@@ -21,6 +21,7 @@ public static class ExtensionesServicios
 
         pServicios.AddSingleton<EstadoEjecucionAgente>();
         pServicios.AddSingleton<InicializadorIndicesElastic>();
+        pServicios.AddSingleton<ProveedorConfiguracionDinamica>();
         pServicios.AddSingleton<FiltrosComunes>();
 
         return pServicios;

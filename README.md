@@ -86,10 +86,13 @@ Cada prueba individual se guarda como `ResultadoPruebaUrl` anidado dentro del `H
 
 ### Filtros unificados
 
-Los dos agentes comparten las mismas dos listas en `appsettings.json`:
+Los dos agentes comparten las mismas tres listas, gestionadas centralmente en el índice `exodus-config` de Elasticsearch (ver sección [Configuración dinámica vía Elasticsearch](#configuración-dinámica-vía-elasticsearch)):
 
-- **`Agent:ServiciosIgnorados`** — omite servicios (Docker: por nombre del servicio Swarm; IIS: por nombre del sitio).
-- **`Agent:DominiosBloqueados`** — elimina URLs que contengan cualquiera de estos substrings antes de probarlas.
+- **`ServiciosIgnorados`** — omite servicios (Docker: por nombre del servicio Swarm; IIS: por nombre del sitio).
+- **`ServiciosSoloInterno`** — omite el canal externo aunque el servicio tenga URLs HTTPS válidas. El canal interno se ejecuta con normalidad.
+- **`DominiosBloqueados`** — elimina URLs que contengan cualquiera de estos substrings antes de probarlas.
+
+El `appsettings.json` mantiene estas claves únicamente como **fallback de bootstrap** (se usan para crear el documento inicial en Elastic si aún no existe).
 
 ### Nombre del nodo en el heartbeat
 
@@ -153,9 +156,12 @@ O desde Visual Studio con el `FolderProfile.pubxml` incluido.
 | `Agent:IntervaloRevisionEnSegundos` | `60` |
 | `Agent:HealthChecksRetencionEnHoras` | `48` |
 | `Agent:ServiciosIgnorados` | `[]` |
+| `Agent:ServiciosSoloInterno` | `[]` |
 | `Agent:DominiosBloqueados` | `[]` |
 
 Overrides de producción: el `docker-compose/base.yml` inyecta `Elastic__*` y `Agent__*` vía variables de entorno (notación `__`).
+
+> **Nota:** `Agent:ServiciosIgnorados`, `Agent:ServiciosSoloInterno` y `Agent:DominiosBloqueados` son **solo fallback de bootstrap**. La fuente de verdad es el índice `exodus-config` en Elasticsearch.
 
 ### Exclusivo Docker
 - `Docker:Endpoint` — default `unix:///var/run/docker.sock`.
@@ -173,6 +179,85 @@ Overrides de producción: el `docker-compose/base.yml` inyecta `Elastic__*` y `A
 | `POST` | `/api/actualizar` | Dispara un ciclo de monitoreo fuera de banda. Usa semáforo, no solapa con el ciclo programado. |
 
 **HEALTHCHECK del contenedor Docker:** valida solamente que el servidor HTTP responda, no que `/health` retorne 200. Un `503 degraded` (Elastic caído) NO mata al agente — reiniciarlo no arregla nada. El `/health` sigue reportando el detalle real para observabilidad.
+
+---
+
+## Configuración dinámica vía Elasticsearch
+
+La configuración de filtros (`ServiciosIgnorados`, `ServiciosSoloInterno`, `DominiosBloqueados`) se centraliza en el índice `exodus-config` de Elasticsearch. Ambos agentes (Docker/Swarm e IIS) leen este índice al inicio de cada ciclo de monitoreo. El `appsettings.json` solo actúa como **fallback de bootstrap**.
+
+### Modelo del documento
+
+El índice almacena un único documento con `_id = "actual"`:
+
+```json
+{
+  "Version": 3,
+  "ActualizadoUtc": "2025-01-15T10:30:00Z",
+  "ActualizadoPor": "admin@apymsa.com.mx",
+  "ServiciosIgnorados": [
+    "prd_speedtest",
+    "datadog-synthetics_datadog-worker",
+    "exodus-agent_exodus-agent"
+  ],
+  "ServiciosSoloInterno": [
+    "tlc_tlc-proveedores",
+    "security_gateway01"
+  ],
+  "DominiosBloqueados": [
+    "apymsa.net"
+  ]
+}
+```
+
+### Actualización desde el sitio administrador
+
+El sitio externo actualiza la configuración directamente en Elasticsearch. **Siempre se debe incrementar `Version`** — esa es la señal de recarga para los agentes:
+
+```http
+POST exodus-config/_doc/actual
+{
+  "Version": 4,
+  "ActualizadoUtc": "2025-01-16T08:00:00Z",
+  "ActualizadoPor": "admin@apymsa.com.mx",
+  "ServiciosIgnorados": [
+    "prd_speedtest",
+    "datadog-synthetics_datadog-worker",
+    "exodus-agent_exodus-agent",
+    "nuevo-servicio-a-ignorar"
+  ],
+  "ServiciosSoloInterno": [
+    "tlc_tlc-proveedores",
+    "security_gateway01"
+  ],
+  "DominiosBloqueados": [
+    "apymsa.net"
+  ]
+}
+```
+
+> **Importante:** No se deben crear endpoints HTTP nuevos en el agente para gestionar la configuración. El sitio administrador habla directamente con Elasticsearch.
+
+### Comportamiento de fallback
+
+Si Elasticsearch no responde al arrancar, el agente construye un snapshot con `Version=0` desde el `appsettings.json` local y continúa operativo. En ciclos subsecuentes, reintenta el refresco silenciosamente.
+
+Si Elasticsearch falla durante un ciclo (no en el arranque), el agente mantiene el último snapshot válido y loguea un warning.
+
+### Bootstrap automático en el primer arranque
+
+Al iniciar, tras crear los índices, cada agente intenta crear el documento `exodus-config/_doc/actual` con `OpType.Create` (evita race condition entre réplicas Swarm). Si el documento ya existe, recibe un 409 benigno y procede a leer la configuración existente. Los valores iniciales provienen del `appsettings.json` local con `Version=1`.
+
+### Latencia de propagación
+
+Los cambios se propagan a todos los nodos en **≤ 1 ciclo de monitoreo** (≤ 60 s por defecto, según `Agent:IntervaloRevisionEnSegundos`). La detección se hace comparando el campo `Version` (1 GET Elastic + 1 comparación de `long`); la reconstrucción de los `HashSet` de filtros ocurre únicamente cuando `Version` cambia.
+
+### Plan de despliegue
+
+1. Desplegar agente nuevo. El primer arranque crea el índice `exodus-config` y el documento `actual` con `Version=1` (valores del `appsettings.json`).
+2. Verificar en Kibana que el documento refleje la configuración esperada.
+3. A partir de ahí, el sitio administrador externo gestiona el documento (incrementando `Version` en cada cambio).
+4. Cambios futuros se propagan a todos los nodos en ≤ 60 s sin redeploy.
 
 ---
 

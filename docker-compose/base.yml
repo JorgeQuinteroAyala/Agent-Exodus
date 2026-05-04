@@ -23,6 +23,13 @@ services:
       - Logging__LogLevel__Default=Warning
       - Logging__LogLevel__Microsoft=Warning
       - Logging__LogLevel__System=Warning
+      # Las variables Agent__ServiciosIgnorados, Agent__ServiciosSoloInterno y
+      # Agent__DominiosBloqueados son SOLO fallback de bootstrap. La fuente de verdad
+      # es el documento "actual" del índice "exodus-config" en Elasticsearch.
+      # Si ese documento no existe al arrancar, el agente lo crea con estos valores.
+      # - Agent__ServiciosIgnorados=[]
+      # - Agent__ServiciosSoloInterno=[]
+      # - Agent__DominiosBloqueados=[]
     user: "0:0"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro

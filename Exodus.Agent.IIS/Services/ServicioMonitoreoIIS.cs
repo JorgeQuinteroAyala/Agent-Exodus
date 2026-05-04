@@ -22,8 +22,9 @@ public class ServicioMonitoreoIIS : BaseServicioMonitoreo
     public ServicioMonitoreoIIS(IElasticClient pElastic, IConfiguration pConfig,
         IHttpClientFactory pHttpFactory, ILogger<ServicioMonitoreoIIS> pLogger,
         EstadoEjecucionAgente pEstado, DetectorSitiosIIS pDetector,
-        FiltrosComunes pFiltros, SubMuestreadorIIS pSubMuestreador)
-        : base(pElastic, pConfig, pLogger, pEstado)
+        FiltrosComunes pFiltros, SubMuestreadorIIS pSubMuestreador,
+        ProveedorConfiguracionDinamica pConfiguracion)
+        : base(pElastic, pConfig, pLogger, pEstado, pConfiguracion)
     {
         HttpClientInterno = pHttpFactory.CreateClient("ClienteInterno");
         HttpClientExterno = pHttpFactory.CreateClient("ClienteExterno");
@@ -43,10 +44,7 @@ public class ServicioMonitoreoIIS : BaseServicioMonitoreo
             .Where(s => !Filtros.EsServicioIgnorado(s.Nombre))
             .ToList();
 
-        var SitiosSoloInterno = new HashSet<string>(
-        Config.GetSection("Agent:SitiosSoloInterno").Get<string[]>()
-            ?? Array.Empty<string>(),
-        StringComparer.OrdinalIgnoreCase);
+        var SitiosSoloInterno = Configuracion.Obtener().SetServiciosSoloInterno;
 
         // Mapear sitio → app pool usando la root application.
         var SitioAPool = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
